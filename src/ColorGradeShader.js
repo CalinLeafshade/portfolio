@@ -1,5 +1,3 @@
-import { Color } from "three";
-
 const ColorGradeShader = {
   shaderID: "luminosityHighPass",
 

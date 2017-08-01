@@ -1,17 +1,14 @@
 import React from "react";
-import range from "lodash/range";
 import random from "lodash/random";
 import {
   Scene,
   FlatShading,
   PerspectiveCamera,
   WebGLRenderer,
-  AmbientLight,
   DirectionalLight,
   PlaneGeometry,
   Mesh,
   MeshStandardMaterial,
-  MeshPhongMaterial,
   Vector3,
   Vector2,
   Clock
@@ -96,7 +93,7 @@ class TriangleBackground extends React.Component {
     this.clock = new Clock();
     this.initCamera();
     this.initRenderer();
-    var ambLight = new AmbientLight(0x909000);
+    //var ambLight = new AmbientLight(0x909000);
     //scene.add(ambLight);
     var directionalLight = new DirectionalLight(0xdddddd, 1.3);
     directionalLight.position.set(0, 100, 200);
@@ -168,7 +165,6 @@ class TriangleBackground extends React.Component {
   }
 
   updateVerts() {
-    const { width, height, res } = this.props;
     const rectGeom = this.rectGeom;
     const t = this.t;
     rectGeom.vertices.forEach((v, i) => {
@@ -188,10 +184,8 @@ class TriangleBackground extends React.Component {
   }
 
   draw() {
-    const { width, height } = this.props;
     var delta = this.clock.getDelta();
     this.composer.render(delta);
-    //this.renderer.render(this.scene, this.camera);
   }
 
   render() {

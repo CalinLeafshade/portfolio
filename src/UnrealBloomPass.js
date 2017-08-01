@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import ConvolutionShader from "./ConvolutionShader";
 import LuminosityHighPassShader from "./LuminosityHighPassShader";
 import { CopyShader } from "three-effectcomposer-es6";
 
@@ -37,7 +36,7 @@ const UnrealBloomPass = function(resolution, strength, radius, threshold) {
 
     this.renderTargetsHorizontal.push(renderTarget);
 
-    var renderTarget = new THREE.WebGLRenderTarget(resx, resy, pars);
+    renderTarget = new THREE.WebGLRenderTarget(resx, resy, pars);
 
     renderTarget.texture.name = "UnrealBloomPass.v" + i;
     renderTarget.texture.generateMipmaps = false;
@@ -67,10 +66,10 @@ const UnrealBloomPass = function(resolution, strength, radius, threshold) {
   // Gaussian Blur Materials
   this.separableBlurMaterials = [];
   var kernelSizeArray = [3, 5, 7, 9, 11];
-  var resx = Math.round(this.resolution.x / 2);
-  var resy = Math.round(this.resolution.y / 2);
+  resx = Math.round(this.resolution.x / 2);
+  resy = Math.round(this.resolution.y / 2);
 
-  for (var i = 0; i < this.nMips; i++) {
+  for (let i = 0; i < this.nMips; i++) {
     this.separableBlurMaterials.push(
       this.getSeperableBlurMaterial(kernelSizeArray[i])
     );
@@ -154,7 +153,7 @@ UnrealBloomPass.prototype = {
     for (var i = 0; i < this.renderTargetsHorizontal.length(); i++) {
       this.renderTargetsHorizontal[i].dispose();
     }
-    for (var i = 0; i < this.renderTargetsVertical.length(); i++) {
+    for (let i = 0; i < this.renderTargetsVertical.length(); i++) {
       this.renderTargetsVertical[i].dispose();
     }
     this.renderTargetBright.dispose();
@@ -272,39 +271,40 @@ UnrealBloomPass.prototype = {
         direction: { value: new THREE.Vector2(0.5, 0.5) }
       },
 
-      vertexShader:
-        "varying vec2 vUv;\n\
-				void main() {\n\
-					vUv = uv;\n\
-					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\
-				}",
+      vertexShader: `
+        varying vec2 vUv;
+				void main() {
+					vUv = uv;
+					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+				}
+      `,
 
-      fragmentShader:
-        "#include <common>\
-				varying vec2 vUv;\n\
-				uniform sampler2D colorTexture;\n\
-				uniform vec2 texSize;\
-				uniform vec2 direction;\
-				\
-				float gaussianPdf(in float x, in float sigma) {\
-					return 0.39894 * exp( -0.5 * x * x/( sigma * sigma))/sigma;\
-				}\
-				void main() {\n\
-					vec2 invSize = 1.0 / texSize;\
-					float fSigma = float(SIGMA);\
-					float weightSum = gaussianPdf(0.0, fSigma);\
-					vec3 diffuseSum = texture2D( colorTexture, vUv).rgb * weightSum;\
-					for( int i = 1; i < KERNEL_RADIUS; i ++ ) {\
-						float x = float(i);\
-						float w = gaussianPdf(x, fSigma);\
-						vec2 uvOffset = direction * invSize * x;\
-						vec3 sample1 = texture2D( colorTexture, vUv + uvOffset).rgb;\
-						vec3 sample2 = texture2D( colorTexture, vUv - uvOffset).rgb;\
-						diffuseSum += (sample1 + sample2) * w;\
-						weightSum += 2.0 * w;\
-					}\
-					gl_FragColor = vec4(diffuseSum/weightSum, 1.0);\n\
-				}"
+      fragmentShader: `
+        #include <common>
+				varying vec2 vUv;
+				uniform sampler2D colorTexture;
+				uniform vec2 texSize;
+				uniform vec2 direction;
+
+				float gaussianPdf(in float x, in float sigma) {
+					return 0.39894 * exp( -0.5 * x * x/( sigma * sigma))/sigma;
+				}
+				void main() {
+					vec2 invSize = 1.0 / texSize;
+					float fSigma = float(SIGMA);
+					float weightSum = gaussianPdf(0.0, fSigma);
+					vec3 diffuseSum = texture2D( colorTexture, vUv).rgb * weightSum;
+					for( int i = 1; i < KERNEL_RADIUS; i ++ ) {
+						float x = float(i);
+						float w = gaussianPdf(x, fSigma);
+						vec2 uvOffset = direction * invSize * x;
+						vec3 sample1 = texture2D( colorTexture, vUv + uvOffset).rgb;
+						vec3 sample2 = texture2D( colorTexture, vUv - uvOffset).rgb;
+						diffuseSum += (sample1 + sample2) * w;
+						weightSum += 2.0 * w;
+					}
+					gl_FragColor = vec4(diffuseSum/weightSum, 1.0);
+				}`
     });
   },
 
@@ -327,38 +327,38 @@ UnrealBloomPass.prototype = {
         bloomRadius: { value: 0.0 }
       },
 
-      vertexShader:
-        "varying vec2 vUv;\n\
-				void main() {\n\
-					vUv = uv;\n\
-					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\
-				}",
+      vertexShader: `
+        varying vec2 vUv;
+				void main() {
+					vUv = uv;
+					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+				}`,
 
-      fragmentShader:
-        "varying vec2 vUv;\
-				uniform sampler2D blurTexture1;\
-				uniform sampler2D blurTexture2;\
-				uniform sampler2D blurTexture3;\
-				uniform sampler2D blurTexture4;\
-				uniform sampler2D blurTexture5;\
-				uniform sampler2D dirtTexture;\
-				uniform float bloomStrength;\
-				uniform float bloomRadius;\
-				uniform float bloomFactors[NUM_MIPS];\
-				uniform vec3 bloomTintColors[NUM_MIPS];\
-				\
-				float lerpBloomFactor(const in float factor) { \
-					float mirrorFactor = 1.2 - factor;\
-					return mix(factor, mirrorFactor, bloomRadius);\
-				}\
-				\
-				void main() {\
-					gl_FragColor = bloomStrength * ( lerpBloomFactor(bloomFactors[0]) * vec4(bloomTintColors[0], 1.0) * texture2D(blurTexture1, vUv) + \
-					 							 lerpBloomFactor(bloomFactors[1]) * vec4(bloomTintColors[1], 1.0) * texture2D(blurTexture2, vUv) + \
-												 lerpBloomFactor(bloomFactors[2]) * vec4(bloomTintColors[2], 1.0) * texture2D(blurTexture3, vUv) + \
-												 lerpBloomFactor(bloomFactors[3]) * vec4(bloomTintColors[3], 1.0) * texture2D(blurTexture4, vUv) + \
-												 lerpBloomFactor(bloomFactors[4]) * vec4(bloomTintColors[4], 1.0) * texture2D(blurTexture5, vUv) );\
-				}"
+      fragmentShader: `
+        varying vec2 vUv;
+				uniform sampler2D blurTexture1;
+				uniform sampler2D blurTexture2;
+				uniform sampler2D blurTexture3;
+				uniform sampler2D blurTexture4;
+				uniform sampler2D blurTexture5;
+				uniform sampler2D dirtTexture;
+				uniform float bloomStrength;
+				uniform float bloomRadius;
+				uniform float bloomFactors[NUM_MIPS];
+				uniform vec3 bloomTintColors[NUM_MIPS];
+
+				float lerpBloomFactor(const in float factor) {
+					float mirrorFactor = 1.2 - factor;
+					return mix(factor, mirrorFactor, bloomRadius);
+				}
+
+				void main() {
+					gl_FragColor = bloomStrength * ( lerpBloomFactor(bloomFactors[0]) * vec4(bloomTintColors[0], 1.0) * texture2D(blurTexture1, vUv) +
+					 							 lerpBloomFactor(bloomFactors[1]) * vec4(bloomTintColors[1], 1.0) * texture2D(blurTexture2, vUv) +
+												 lerpBloomFactor(bloomFactors[2]) * vec4(bloomTintColors[2], 1.0) * texture2D(blurTexture3, vUv) +
+												 lerpBloomFactor(bloomFactors[3]) * vec4(bloomTintColors[3], 1.0) * texture2D(blurTexture4, vUv) +
+												 lerpBloomFactor(bloomFactors[4]) * vec4(bloomTintColors[4], 1.0) * texture2D(blurTexture5, vUv) );
+				}`
     });
   }
 };
