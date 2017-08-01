@@ -37,6 +37,7 @@ class TriangleBackground extends React.Component {
     super();
     this.rand = [];
     this.t = random(100, 1000);
+    this.mousePos = new Vector3(0, 0, 0);
   }
 
   initCamera() {
@@ -87,7 +88,7 @@ class TriangleBackground extends React.Component {
   }
 
   init() {
-    const { width, height } = this.props;
+    const { width, height, light } = this.props;
     var scene = new Scene();
     this.scene = scene;
     this.clock = new Clock();
@@ -95,7 +96,8 @@ class TriangleBackground extends React.Component {
     this.initRenderer();
     //var ambLight = new AmbientLight(0x909000);
     //scene.add(ambLight);
-    var directionalLight = new DirectionalLight(0xdddddd, 1.3);
+    var directionalLight = new DirectionalLight(0xdddddd, light);
+    this.light = directionalLight;
     directionalLight.position.set(0, 100, 200);
     scene.add(directionalLight);
 
@@ -157,19 +159,47 @@ class TriangleBackground extends React.Component {
 
   componentDidMount() {
     this.init();
+    document.addEventListener("mousemove", this.onMouseMove);
     this.update();
   }
 
-  componentDidUpdate() {
-    this.init();
+  componentDidUpdate(prevProps) {
+    if (
+      prevProps.width !== this.props.width ||
+      prevProps.height !== this.props.height
+    ) {
+      this.init();
+    }
   }
+
+  onMouseMove = event => {
+    let vector = new Vector3();
+    let camera = this.camera;
+    const { width, height } = this.props;
+
+    vector.set(
+      event.clientX / width * 2 - 1,
+      -(event.clientY / height) * 2 + 1,
+      0.5
+    );
+
+    vector.unproject(camera);
+
+    var dir = vector.sub(camera.position).normalize();
+
+    var distance = -camera.position.z / dir.z;
+
+    this.mousePos = camera.position.clone().add(dir.multiplyScalar(distance));
+  };
 
   updateVerts() {
     const rectGeom = this.rectGeom;
     const t = this.t;
     rectGeom.vertices.forEach((v, i) => {
       this.rand[i] = this.rand[i] || Math.random() * 0.5;
-      v.set(v.x, v.y, Math.sin(t * this.rand[i] * 2) * 2);
+      var vec = new Vector2(v.x - this.mousePos.x, v.y - this.mousePos.y);
+      var d = -10 * (10 / (10 + vec.length())) * this.props.mouseEffectStrength;
+      v.set(v.x, v.y, Math.sin(t * this.rand[i] * 2) * 2 + d);
     });
 
     rectGeom.normalsNeedUpdate = true;
@@ -177,6 +207,10 @@ class TriangleBackground extends React.Component {
   }
 
   update() {
+    const { light } = this.props;
+
+    this.light.intensity = light;
+
     this.t += 1 / 60;
     this.updateVerts();
     this.draw();
