@@ -1,14 +1,13 @@
 {
-   "index": "index.html",
-   "region": "eu-west-1",
-   "uploadDir": ".",
-   "prefix": "",
-   "exclude": [],
-   "corsConfiguration": [],
-   "enableCloudfront": true,
-   "exclude": ['.git/*', '.gitignore'],
-   "retries": 20,
-   "deploy": true,
-   "domain": "leafshade.io",
-   "configFile": ".s3-website.json"
+  "index": "index.html",
+  "region": "eu-west-1",
+  "uploadDir": ".",
+  "prefix": "",
+  "exclude": [".git/*"],
+  "corsConfiguration": [],
+  "enableCloudfront": true,
+  "retries": 20,
+  "deploy": true,
+  "domain": "leafshade.io",
+  "configFile": ".s3-website.json"
 }
